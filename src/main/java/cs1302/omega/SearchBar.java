@@ -45,7 +45,7 @@ public class SearchBar extends VBox {
             buildJsonResults(url);
             //printing drivers
             this.printDrivers(this.resultsArray);
-            System.out.println(this.constructYoutubeUrl());
+            parseYouTubeJson(this.constructYoutubeUrl());
         };
         generateButton.setOnAction(generateJson);
         barBox.getChildren().add(this.yearField);
@@ -77,27 +77,37 @@ public class SearchBar extends VBox {
     }
     // assigning the appropriate json elements to their appropriate instance variables
     public void buildJsonResults(String url) {
-        JsonElement root = this.returnJson(url);
-        this.raceCountry = Tools.get(root,"MRData","RaceTable","Races",0,"Circuit","Location","country").getAsString();
-        this.raceYear = Tools.get(root, "MRData", "RaceTable", "Races", 0, "season").getAsString();
-        this.resultsArray = this.getResultsArray(root);
+        try {
+            JsonElement root = this.returnJson(url);
+            JsonElement racesArray = Tools.get(root,"MRData","RaceTable","Races",0);
+            this.raceCountry = Tools.get(racesArray,"Circuit","Location","country").getAsString();
+            JsonElement raceYearJson = Tools.get(root, "MRData", "RaceTable", "Races", 0, "season");
+            this.raceYear = raceYearJson.getAsString();
+            this.resultsArray = this.getResultsArray(root);
+        } catch (IndexOutOfBoundsException IOE) {
+            System.out.println(IOE.getMessage());
+            this.youtubeUrl.setText("Please Try a lower race round");
+        }
     }
 
     // parsing through the root element to get to the results array and return it
     public JsonArray getResultsArray(JsonElement root) {
-        JsonArray resultsArray = Tools.get(root,"MRData","RaceTable","Races",0,"Results").getAsJsonArray();
+        JsonElement resultsElement = Tools.get(root,"MRData","RaceTable","Races",0,"Results");
+        JsonArray resultsArray = resultsElement.getAsJsonArray();
         return resultsArray;
     }
 
     public Text printDrivers(JsonArray resultsArray) {
         Text text = null;
         this.resultsBox.textBox.getChildren().clear();
-        text = new Text("RACE COUNTRY: " + this.raceCountry + " RACE YEAR: " + this.raceYear+"\n\n");
-        this.resultsBox.textBox.getChildren().add(text);
+        Text text1 = new Text("RACE COUNTRY: " + this.raceCountry + "\n");
+        Text text2 = new Text("RACE YEAR: " + this.raceYear + "\n\n");
+        this.resultsBox.textBox.getChildren().add(text1);
+        this.resultsBox.textBox.getChildren().add(text2);
         for (JsonElement e : resultsArray) {
             String position = Tools.get(e,"position").getAsString() + " | ";
             String points = Tools.get(e,"points").getAsString() + " | ";
-            String driverFirst = Tools.get(e,"Driver","givenName").getAsString() + " | ";
+            String driverFirst = Tools.get(e,"Driver","givenName").getAsString() + " ";
             String driverLast = Tools.get(e,"Driver","familyName").getAsString() + " | ";
             String constructor = Tools.get(e,"Constructor","name").getAsString()+ "\n";
             text = new Text(position + points + driverFirst + driverLast+constructor);
@@ -108,6 +118,10 @@ public class SearchBar extends VBox {
 
     public String constructYoutubeUrl() {
         String ytEnd = "";
+        if (Integer.parseInt(this.raceYear) <= 2016) {
+            this.youtubeUrl.setText("NOTE: year must be after 2016 for a link");
+            return ytEnd;
+        }
         try {
             String ytStart = "https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=";
             String parameter = "F1 " + this.raceCountry + " " + this.raceYear + " Highlights";
@@ -118,6 +132,19 @@ public class SearchBar extends VBox {
             System.out.println(UEE.getMessage());
         }
         return ytEnd;
+
+    }
+
+    public void parseYouTubeJson(String url) {
+        try {
+            JsonElement root = Tools.getJson(url);
+            String link = "https://www.youtube.com/watch?v=";
+            String videoId = Tools.get(root, "items", 0, "id", "videoId").getAsString();
+            link += videoId;
+            this.youtubeUrl.setText(link);
+        } catch (IOException IOE) {
+            System.out.println(IOE.getMessage());
+        }
 
     }
 }
