@@ -11,7 +11,6 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 
-
 public class OmegaApp extends Application {
 
     /**
@@ -23,13 +22,11 @@ public class OmegaApp extends Application {
     /** {@inheritDoc} */
     @Override
     public void start(Stage stage) {
-        HBox sb = new searchBar();
-        VBox mr = new MatchResults();
+        SearchBar searchField = new SearchBar();
+        VBox textBox = new ResultsBox();
         VBox root = new VBox();
-        root.getChildren().add(sb);
-        root.getChildren().add(mr);
+        root.getChildren().addAll(searchField, textBox);
         Scene scene = new Scene(root,800,600);
-
         // setup stage
         stage.setTitle("OmegaApp!");
         stage.setScene(scene);
@@ -37,8 +34,6 @@ public class OmegaApp extends Application {
         stage.sizeToScene();
 
         stage.show();
-
-        // play the game
 
     } // start
 
